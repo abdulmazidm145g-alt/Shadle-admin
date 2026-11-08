@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PK Server Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
+<style>
+:root{
+  --bg:#0f1730;--panel:#18234a;--line:#2a3763;--ink:#eef1ff;--mute:#9aa6d4;--good:#2fd07a;--bad:#ff4057;--warn:#ffc933;
+  --f-display:'Baloo 2','Trebuchet MS',system-ui,sans-serif;--f-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-weight:600;
+  padding:max(14px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+main{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{width:36px;height:36px;border-radius:50%;object-fit:cover;background:#fff;flex:none}
+h1{font-family:var(--f-display);font-weight:800;font-size:24px;margin:0;line-height:1}
+.net{margin-left:auto;font-size:13px;color:var(--mute);display:flex;align-items:center;gap:6px}
+.net i{width:9px;height:9px;border-radius:50%;background:var(--warn);display:block}
+.net.ok i{background:var(--good)}
+.net.err i{background:var(--bad)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.ctrl{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.state{display:flex;flex-direction:column;gap:2px;min-width:0}
+.state small{color:var(--mute);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.state strong{font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1}
+.state strong.run{color:var(--good)}
+.state strong.stop{color:var(--bad)}
+.acts{display:flex;gap:10px;flex-wrap:wrap}
+button{font-family:var(--f-display);font-weight:800;font-size:19px;border:0;border-radius:12px;padding:12px 22px;cursor:pointer;color:#06210f;background:var(--good)}
+button.stopb{background:var(--bad);color:#fff}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:15px;padding:8px 14px}
+button:disabled{opacity:.35;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat small{display:block;color:var(--mute);font-size:12px}
+.stat b{font-family:var(--f-display);font-size:26px;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+th{color:var(--mute);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.07em;text-align:left;padding:6px 10px}
+td{padding:9px 10px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#5a6698;margin-right:8px}
+.dot.on{background:var(--good);box-shadow:0 0 0 3px rgba(47,208,122,.2)}
+.tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;background:var(--bg);border:1px solid var(--line)}
+.tag.verified{color:var(--good);border-color:var(--good)}
+.empty{color:var(--mute);padding:18px 4px}
+.row-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.row-h h2{font-family:var(--f-display);font-size:18px;margin:0}
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+#gate[hidden]{display:none}
+#gate form{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;text-align:center}
+#gate input{font:inherit;font-size:18px;text-align:center;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+#gate p{margin:0;color:var(--bad);min-height:1.2em;font-size:14px}
+</style>
+</head>
+<body>
+<div id="gate"><form id="gf"><img class="logo" id="gl" alt="PK Server logo" style="margin:0 auto"><h1>Admin sign-in</h1><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="Admin PIN"><p id="gerr"></p><button type="submit">Open panel</button></form></div>
+
+<main id="panel" hidden>
+  <header><img class="logo" id="hl" alt="PK Server logo"><h1>PK Server Admin</h1><div class="net" id="net"><i></i><span id="netT">Connecting...</span></div></header>
+
+  <section class="panel ctrl" aria-label="Game control">
+    <div class="state"><small>Game for all players</small><strong id="gs" class="run">Running</strong></div>
+    <div class="acts"><button id="bStop" class="stopb">Stop</button><button id="bStart" disabled>Start</button></div>
+  </section>
+
+  <section class="stats" aria-label="Live numbers">
+    <div class="stat"><small>Online now</small><b id="sOn">0</b></div>
+    <div class="stat"><small>Playing</small><b id="sPlay">0</b></div>
+    <div class="stat"><small>On verified screen</small><b id="sVer">0</b></div>
+    <div class="stat"><small>All visitors</small><b id="sAll">0</b></div>
+  </section>
+
+  <section class="panel">
+    <div class="row-h"><h2>Players</h2><button class="ghost" id="bClear">Remove inactive (1h+)</button></div>
+    <div class="tw"><table><thead><tr><th>Player</th><th>Screen</th><th>Puzzle</th><th>Round</th><th>Lives</th><th>Device</th><th>Seen</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="empty" id="empty">Waiting for players...</div>
+  </section>
+</main>
+
+<script type="module">
+/* Change this PIN. It only hides the panel in the browser; use Firebase Auth + rules for real protection. */
+const ADMIN_PIN='1234';
+const LOGO_URL='https://i.postimg.cc/5NsY4R8Q/pk-initial-circle-logo-template-vector.jpg';
+const LOGO_FALLBACK='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#fff" stroke="#17254a" stroke-width="4"/><text x="32" y="41" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="26" fill="#17254a">PK</text></svg>');
+for(const id of ['gl','hl']){const im=document.getElementById(id);im.onerror=()=>{im.onerror=null;im.src=LOGO_FALLBACK};im.src=LOGO_URL}
+
+const firebaseConfig={
+  apiKey:"AIzaSyAQB61QWus2fMNS5FNU4nLZCKnU5qONBY4",
+  authDomain:"flixory-74271.firebaseapp.com",
+  databaseURL:"https://flixory-74271-default-rtdb.firebaseio.com",
+  projectId:"flixory-74271",
+  storageBucket:"flixory-74271.firebasestorage.app",
+  messagingSenderId:"292608615173",
+  appId:"1:292608615173:web:30a2988703b506e4424d6c",
+  measurementId:"G-8ZF9KF2BG3"
+};
+
+const $=id=>document.getElementById(id);
+let authed=false;
+try{authed=sessionStorage.getItem('pk-admin')==='1'}catch(e){}
+function open(){$('gate').hidden=true;$('panel').hidden=false}
+if(authed)open();
+$('gf').addEventListener('submit',e=>{
+  e.preventDefault();
+  if($('pin').value===ADMIN_PIN){try{sessionStorage.setItem('pk-admin','1')}catch(x){}open()}
+  else{$('gerr').textContent='Wrong PIN';$('pin').value='';$('pin').focus()}
+});
+
+function setNet(cls,t){const n=$('net');n.className='net '+cls;$('netT').textContent=t}
+let players=[],stopped=false,api=null;
+
+function ago(ms){const s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+'s ago':s<3600?Math.floor(s/60)+'m ago':Math.floor(s/3600)+'h ago'}
+function render(){
+  $('gs').textContent=stopped?'Stopped':'Running';$('gs').className=stopped?'stop':'run';
+  $('bStop').disabled=stopped;$('bStart').disabled=!stopped;
+  const on=p=>Date.now()-(p.lastSeen||0)<25000;
+  const online=players.filter(on);
+  $('sOn').textContent=online.length;
+  $('sPlay').textContent=online.filter(p=>p.screen==='playing').length;
+  $('sVer').textContent=online.filter(p=>p.screen==='verified').length;
+  $('sAll').textContent=players.length;
+  $('empty').hidden=players.length>0;
+  const rows=players.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0));
+  $('rows').innerHTML='';
+  for(const p of rows){
+    const tr=document.createElement('tr');
+    const cells=[
+      ['<span class="dot '+(on(p)?'on':'')+'"></span>'+p.id,true],
+      ['<span class="tag '+(p.screen==='verified'?'verified':'')+'">'+(p.screen||'-')+'</span>',true],
+      [p.puzzleNo?p.puzzleNo+' / 20 ('+(p.puzzle||'')+')':'-'],
+      [p.round||'-'],[p.lives!=null?p.lives:'-'],[p.mobile?'Phone':'Desktop'],[p.lastSeen?ago(p.lastSeen):'-']
+    ];
+    for(const [v,html] of cells){const td=document.createElement('td');if(html)td.innerHTML=v;else td.textContent=v;tr.appendChild(td)}
+    $('rows').appendChild(tr);
+  }
+}
+setInterval(render,2000);render();
+
+async function setStopped(v){
+  if(!api){setNet('err','Not connected');return}
+  try{await api.setDoc(api.doc(api.db,'control','game'),{stopped:v,updatedAt:Date.now()},{merge:true})}
+  catch(e){console.warn(e);setNet('err','Write failed: check Firestore rules')}
+}
+$('bStop').onclick=()=>setStopped(true);
+$('bStart').onclick=()=>setStopped(false);
+$('bClear').onclick=async()=>{
+  if(!api)return;
+  const old=players.filter(p=>Date.now()-(p.lastSeen||0)>3600000);
+  for(const p of old){try{await api.deleteDoc(api.doc(api.db,'players',p.id))}catch(e){console.warn(e)}}
+};
+
+try{
+  const V='10.14.1';
+  const {initializeApp}=await import('https://www.gstatic.com/firebasejs/'+V+'/firebase-app.js');
+  const fs=await import('https://www.gstatic.com/firebasejs/'+V+'/firebase-firestore.js');
+  const app=initializeApp(firebaseConfig);
+  const db=fs.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
+  api={db,doc:fs.doc,setDoc:fs.setDoc,deleteDoc:fs.deleteDoc};
+  fs.onSnapshot(fs.doc(db,'control','game'),s=>{stopped=!!(s.data()||{}).stopped;setNet('ok','Connected to Firestore');render()},e=>{console.warn(e);setNet('err','Cannot read: check Firestore rules')});
+  fs.onSnapshot(fs.collection(db,'players'),s=>{players=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},e=>console.warn(e));
+}catch(e){console.warn(e);setNet('err','Firebase failed to load')}
+</script>
+</body>
+</html>
