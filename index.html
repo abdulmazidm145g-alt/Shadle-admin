@@ -175,20 +175,21 @@ $('gf').addEventListener('submit',e=>{
 });
 
 function setNet(cls,t){const n=$('net');n.className='net '+cls;$('netT').textContent=t}
-let players=[],api=null;
+let players=[],api=null,skew=0;
+function nowS(){return Date.now()+skew}
 let ctl={mode:'run',difficulty:'medium',blockUntil:0,blockSecs:0};
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function ago(ms){const s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+'s ago':s<3600?Math.floor(s/60)+'m ago':Math.floor(s/3600)+'h ago'}
+function ago(ms){const s=Math.max(0,Math.round((nowS()-ms)/1000));return s<60?s+'s ago':s<3600?Math.floor(s/60)+'m ago':Math.floor(s/3600)+'h ago'}
 const p2=n=>String(n).padStart(2,'0');
 function fmt(s){s=Math.max(0,Math.ceil(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return (h?h+':'+p2(m):p2(m))+':'+p2(x)}
-function effMode(){return ctl.mode==='block'&&(ctl.blockUntil||0)<=Date.now()?'run':ctl.mode}
+function effMode(){return ctl.mode==='block'&&(ctl.blockUntil||0)<=nowS()?'run':ctl.mode}
 
 const LABELS={run:['Running','run'],stop:['Stopped','stop'],error:['Error screen','error'],block:['Blocked','block'],pend:['Pending','pend']};
 function render(){
   const em=effMode(),L=LABELS[em]||LABELS.run;
   $('gs').textContent=L[0];$('gs').className=L[1];
-  $('gsub').textContent=em==='block'?fmt((ctl.blockUntil-Date.now())/1000)+' left (players resume automatically)':
+  $('gsub').textContent=em==='block'?fmt((ctl.blockUntil-nowS())/1000)+' left (players resume automatically)':
     em==='error'?'Players see: "You can\'t play this moment. Play another one."':
     em==='pend'?'Players see: "PK NSP is connecting...."':
     em==='stop'?'Players see the verified screen':'';
@@ -198,7 +199,7 @@ function render(){
   const hard=ctl.difficulty==='hard';
   $('dMed').classList.toggle('on',!hard);$('dHard').classList.toggle('on',hard);
 
-  const on=p=>Date.now()-(p.lastSeen||0)<25000;
+  const on=p=>nowS()-(p.lastSeen||0)<25000;
   const online=players.filter(on);
   $('sOn').textContent=online.length;
   $('sPlay').textContent=online.filter(p=>p.screen==='playing').length;
@@ -226,7 +227,7 @@ setInterval(render,1000);render();
 
 async function write(obj){
   if(!api){setNet('err','Not connected');return false}
-  try{await api.setDoc(api.doc(api.db,'control','game'),Object.assign({updatedAt:Date.now()},obj),{merge:true});return true}
+  try{await api.setDoc(api.doc(api.db,'control','game'),Object.assign({updatedAt:nowS()},obj),{merge:true});return true}
   catch(e){console.warn(e);setNet('err','Write failed: check Firestore rules');return false}
 }
 const setMode=m=>write({mode:m,stopped:m==='stop'});
@@ -248,7 +249,7 @@ document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const s=+c.dataset.
 $('bGo').onclick=async()=>{
   const t=blockSecs();
   if(t<=0){$('berr').textContent='Set a time greater than 0';return}
-  const ok=await write({mode:'block',stopped:false,blockSecs:t,blockUntil:Date.now()+t*1000});
+  const ok=await write({mode:'block',stopped:false,blockSecs:t,blockUntil:nowS()+t*1000,blockStart:api.serverTimestamp()});
   if(ok)$('blockBox').hidden=true;
 };
 
@@ -258,7 +259,7 @@ $('dHard').onclick=()=>write({difficulty:'hard'});
 
 $('bClear').onclick=async()=>{
   if(!api)return;
-  const old=players.filter(p=>Date.now()-(p.lastSeen||0)>3600000);
+  const old=players.filter(p=>nowS()-(p.lastSeen||0)>3600000);
   for(const p of old){try{await api.deleteDoc(api.doc(api.db,'players',p.id))}catch(e){console.warn(e)}}
 };
 
@@ -268,10 +269,19 @@ try{
   const fs=await import('https://www.gstatic.com/firebasejs/'+V+'/firebase-firestore.js');
   const app=initializeApp(firebaseConfig);
   const db=fs.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
-  api={db,doc:fs.doc,setDoc:fs.setDoc,deleteDoc:fs.deleteDoc};
+  api={db,doc:fs.doc,setDoc:fs.setDoc,deleteDoc:fs.deleteDoc,serverTimestamp:fs.serverTimestamp};
+  // measure this device's clock against the server clock
+  fs.onSnapshot(fs.doc(db,'control','clock'),s=>{
+    if(s.metadata.hasPendingWrites)return;
+    const t=(s.data()||{}).t;if(t&&t.toMillis)skew=t.toMillis()-Date.now();
+  },e=>console.warn('clock',e));
+  const pingClock=()=>fs.setDoc(fs.doc(db,'control','clock'),{t:fs.serverTimestamp()}).catch(e=>console.warn('clock',e));
+  pingClock();setInterval(pingClock,60000);
   fs.onSnapshot(fs.doc(db,'control','game'),s=>{
-    const d=s.data()||{};
-    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':'medium',blockUntil:+d.blockUntil||0,blockSecs:+d.blockSecs||0};
+    const d=s.data({serverTimestamps:'estimate'})||{};
+    let bu=+d.blockUntil||0;
+    if(d.blockStart&&typeof d.blockStart.toMillis==='function')bu=d.blockStart.toMillis()+(+d.blockSecs||0)*1000;
+    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':'medium',blockUntil:bu,blockSecs:+d.blockSecs||0};
     setNet('ok','Connected to Firestore');render();
   },e=>{console.warn(e);setNet('err','Cannot read: check Firestore rules')});
   fs.onSnapshot(fs.collection(db,'players'),s=>{players=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},e=>console.warn(e));
