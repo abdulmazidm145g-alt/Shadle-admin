@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@600;800&display=swap">
 <style>
 :root{
-  --bg:#0f1730;--panel:#18234a;--line:#2a3763;--ink:#eef1ff;--mute:#9aa6d4;--good:#2fd07a;--bad:#ff4057;--warn:#ffc933;
+  --bg:#0f1730;--panel:#18234a;--line:#2a3763;--ink:#eef1ff;--mute:#9aa6d4;--good:#2fd07a;--bad:#ff4057;--warn:#ffc933;--blk:#a35bff;--pnd:#2f9bff;
   --f-display:'Baloo 2','Trebuchet MS',system-ui,sans-serif;--f-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
   color-scheme:dark;
 }
@@ -25,30 +25,59 @@ h1{font-family:var(--f-display);font-weight:800;font-size:24px;margin:0;line-hei
 .net.ok i{background:var(--good)}
 .net.err i{background:var(--bad)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
-.ctrl{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.ctop{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
 .state{display:flex;flex-direction:column;gap:2px;min-width:0}
 .state small{color:var(--mute);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
 .state strong{font-family:var(--f-display);font-weight:800;font-size:30px;line-height:1}
 .state strong.run{color:var(--good)}
 .state strong.stop{color:var(--bad)}
+.state strong.error{color:var(--bad)}
+.state strong.block{color:var(--blk)}
+.state strong.pend{color:var(--pnd)}
+.state .sub{font-size:13px;color:var(--mute);min-height:1.2em;font-variant-numeric:tabular-nums}
 .acts{display:flex;gap:10px;flex-wrap:wrap}
+.sep{border:0;border-top:1px solid var(--line);margin:0}
+.lbl{color:var(--mute);font-size:12px;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px}
 button{font-family:var(--f-display);font-weight:800;font-size:19px;border:0;border-radius:12px;padding:12px 22px;cursor:pointer;color:#06210f;background:var(--good)}
 button.stopb{background:var(--bad);color:#fff}
+button.errb{background:#ff8a2b;color:#2b1200}
+button.blkb{background:var(--blk);color:#fff}
+button.pndb{background:var(--pnd);color:#03162d}
 button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:15px;padding:8px 14px}
 button:disabled{opacity:.35;cursor:not-allowed}
+button.cur{box-shadow:0 0 0 3px var(--ink)}
 button:focus-visible,input:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
+.blockbox{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.blockbox[hidden]{display:none}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:15px;padding:7px 14px;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tin{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.tin label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mute);letter-spacing:.08em;text-transform:uppercase}
+.tin input{font:inherit;font-size:22px;font-weight:800;width:96px;text-align:center;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.bprev{font-size:14px;color:var(--mute);min-height:1.2em}
+.berr{color:var(--bad);font-size:14px;min-height:1.2em;margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{border-radius:0;background:transparent;color:var(--ink);font-size:17px;padding:10px 22px}
+.seg button.on{background:var(--good);color:#06210f}
+.seg button.on.hardb{background:var(--bad);color:#fff}
+.hint{display:block;margin-top:8px;color:var(--mute);font-size:13px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .stat{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .stat small{display:block;color:var(--mute);font-size:12px}
 .stat b{font-family:var(--f-display);font-size:26px;font-variant-numeric:tabular-nums}
 .tw{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
 th{color:var(--mute);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.07em;text-align:left;padding:6px 10px}
 td{padding:9px 10px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#5a6698;margin-right:8px}
 .dot.on{background:var(--good);box-shadow:0 0 0 3px rgba(47,208,122,.2)}
 .tag{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;background:var(--bg);border:1px solid var(--line)}
 .tag.verified{color:var(--good);border-color:var(--good)}
+.tag.error{color:var(--bad);border-color:var(--bad)}
+.tag.blocked{color:var(--blk);border-color:var(--blk)}
+.tag.pending{color:var(--pnd);border-color:var(--pnd)}
+.tag.hard{color:var(--bad);border-color:var(--bad)}
 .empty{color:var(--mute);padding:18px 4px}
 .row-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
 .row-h h2{font-family:var(--f-display);font-size:18px;margin:0}
@@ -66,20 +95,52 @@ td{padding:9px 10px;border-top:1px solid var(--line);font-variant-numeric:tabula
   <header><img class="logo" id="hl" alt="PK Server logo"><h1>PK Server Admin</h1><div class="net" id="net"><i></i><span id="netT">Connecting...</span></div></header>
 
   <section class="panel ctrl" aria-label="Game control">
-    <div class="state"><small>Game for all players</small><strong id="gs" class="run">Running</strong></div>
-    <div class="acts"><button id="bStop" class="stopb">Stop</button><button id="bStart" disabled>Start</button></div>
+    <div class="ctop">
+      <div class="state"><small>Game for all players</small><strong id="gs" class="run">Running</strong><span class="sub" id="gsub"></span></div>
+      <div class="acts"><button id="bStop" class="stopb">Stop</button><button id="bStart" disabled>Start</button></div>
+    </div>
+    <hr class="sep">
+    <div>
+      <p class="lbl">Show a screen to all players</p>
+      <div class="acts"><button id="bErr" class="errb">Error</button><button id="bBlock" class="blkb">Block</button><button id="bPend" class="pndb">Pend</button></div>
+    </div>
+    <div class="blockbox" id="blockBox" hidden>
+      <div class="row-h" style="margin:0"><h2>Set block time</h2></div>
+      <div class="chips" id="chips">
+        <button type="button" class="chip" data-s="30">30 sec</button>
+        <button type="button" class="chip" data-s="60">1 min</button>
+        <button type="button" class="chip" data-s="300">5 min</button>
+        <button type="button" class="chip" data-s="600">10 min</button>
+        <button type="button" class="chip" data-s="1800">30 min</button>
+        <button type="button" class="chip" data-s="3600">1 hour</button>
+      </div>
+      <div class="tin">
+        <label>Minutes<input id="bm" type="number" min="0" max="1440" value="1" inputmode="numeric"></label>
+        <label>Seconds<input id="bs" type="number" min="0" max="59" value="0" inputmode="numeric"></label>
+      </div>
+      <div class="bprev" id="bprev"></div>
+      <p class="berr" id="berr"></p>
+      <div class="acts"><button id="bGo" class="blkb">Block players</button><button id="bCancel" class="ghost" type="button">Cancel</button></div>
+    </div>
+    <hr class="sep">
+    <div>
+      <p class="lbl">Difficulty</p>
+      <div class="seg" role="group" aria-label="Difficulty"><button id="dMed" type="button">Medium</button><button id="dHard" type="button" class="hardb">Hard</button></div>
+      <small class="hint">Takes effect instantly. A player in the middle of a puzzle gets a fresh puzzle at the new level.</small>
+    </div>
   </section>
 
   <section class="stats" aria-label="Live numbers">
     <div class="stat"><small>Online now</small><b id="sOn">0</b></div>
     <div class="stat"><small>Playing</small><b id="sPlay">0</b></div>
     <div class="stat"><small>On verified screen</small><b id="sVer">0</b></div>
+    <div class="stat"><small>Error / Block / Pend</small><b id="sPaused">0</b></div>
     <div class="stat"><small>All visitors</small><b id="sAll">0</b></div>
   </section>
 
   <section class="panel">
     <div class="row-h"><h2>Players</h2><button class="ghost" id="bClear">Remove inactive (1h+)</button></div>
-    <div class="tw"><table><thead><tr><th>Player</th><th>Screen</th><th>Puzzle</th><th>Round</th><th>Lives</th><th>Device</th><th>Seen</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="tw"><table><thead><tr><th>Player</th><th>Screen</th><th>Puzzle</th><th>Level</th><th>Round</th><th>Lives</th><th>Device</th><th>Seen</th></tr></thead><tbody id="rows"></tbody></table></div>
     <div class="empty" id="empty">Waiting for players...</div>
   </section>
 </main>
@@ -114,42 +175,87 @@ $('gf').addEventListener('submit',e=>{
 });
 
 function setNet(cls,t){const n=$('net');n.className='net '+cls;$('netT').textContent=t}
-let players=[],stopped=false,api=null;
+let players=[],api=null;
+let ctl={mode:'run',difficulty:'medium',blockUntil:0,blockSecs:0};
 
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function ago(ms){const s=Math.max(0,Math.round((Date.now()-ms)/1000));return s<60?s+'s ago':s<3600?Math.floor(s/60)+'m ago':Math.floor(s/3600)+'h ago'}
+const p2=n=>String(n).padStart(2,'0');
+function fmt(s){s=Math.max(0,Math.ceil(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return (h?h+':'+p2(m):p2(m))+':'+p2(x)}
+function effMode(){return ctl.mode==='block'&&(ctl.blockUntil||0)<=Date.now()?'run':ctl.mode}
+
+const LABELS={run:['Running','run'],stop:['Stopped','stop'],error:['Error screen','error'],block:['Blocked','block'],pend:['Pending','pend']};
 function render(){
-  $('gs').textContent=stopped?'Stopped':'Running';$('gs').className=stopped?'stop':'run';
-  $('bStop').disabled=stopped;$('bStart').disabled=!stopped;
+  const em=effMode(),L=LABELS[em]||LABELS.run;
+  $('gs').textContent=L[0];$('gs').className=L[1];
+  $('gsub').textContent=em==='block'?fmt((ctl.blockUntil-Date.now())/1000)+' left (players resume automatically)':
+    em==='error'?'Players see: "You can\'t play this moment. Play another one."':
+    em==='pend'?'Players see: "PK NSP is connecting...."':
+    em==='stop'?'Players see the verified screen':'';
+  $('bStop').disabled=em==='stop';$('bStart').disabled=em==='run';
+  $('bErr').disabled=em==='error';$('bPend').disabled=em==='pend';
+  $('bBlock').classList.toggle('cur',em==='block');
+  const hard=ctl.difficulty==='hard';
+  $('dMed').classList.toggle('on',!hard);$('dHard').classList.toggle('on',hard);
+
   const on=p=>Date.now()-(p.lastSeen||0)<25000;
   const online=players.filter(on);
   $('sOn').textContent=online.length;
   $('sPlay').textContent=online.filter(p=>p.screen==='playing').length;
   $('sVer').textContent=online.filter(p=>p.screen==='verified').length;
+  $('sPaused').textContent=online.filter(p=>['error','blocked','pending'].includes(p.screen)).length;
   $('sAll').textContent=players.length;
   $('empty').hidden=players.length>0;
   const rows=players.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0));
   $('rows').innerHTML='';
   for(const p of rows){
     const tr=document.createElement('tr');
+    const sc=['verified','error','blocked','pending'].includes(p.screen)?p.screen:'';
     const cells=[
-      ['<span class="dot '+(on(p)?'on':'')+'"></span>'+p.id,true],
-      ['<span class="tag '+(p.screen==='verified'?'verified':'')+'">'+(p.screen||'-')+'</span>',true],
-      [p.puzzleNo?p.puzzleNo+' / 20 ('+(p.puzzle||'')+')':'-'],
+      ['<span class="dot '+(on(p)?'on':'')+'"></span>'+esc(p.id),true],
+      ['<span class="tag '+sc+'">'+esc(p.screen||'-')+'</span>',true],
+      [p.puzzleNo?p.puzzleNo+' / '+(p.total||30)+' ('+(p.puzzle||'')+')':'-'],
+      [p.level?'<span class="tag '+(p.level==='hard'?'hard':'')+'">'+esc(p.level)+'</span>':'-',true],
       [p.round||'-'],[p.lives!=null?p.lives:'-'],[p.mobile?'Phone':'Desktop'],[p.lastSeen?ago(p.lastSeen):'-']
     ];
     for(const [v,html] of cells){const td=document.createElement('td');if(html)td.innerHTML=v;else td.textContent=v;tr.appendChild(td)}
     $('rows').appendChild(tr);
   }
 }
-setInterval(render,2000);render();
+setInterval(render,1000);render();
 
-async function setStopped(v){
-  if(!api){setNet('err','Not connected');return}
-  try{await api.setDoc(api.doc(api.db,'control','game'),{stopped:v,updatedAt:Date.now()},{merge:true})}
-  catch(e){console.warn(e);setNet('err','Write failed: check Firestore rules')}
+async function write(obj){
+  if(!api){setNet('err','Not connected');return false}
+  try{await api.setDoc(api.doc(api.db,'control','game'),Object.assign({updatedAt:Date.now()},obj),{merge:true});return true}
+  catch(e){console.warn(e);setNet('err','Write failed: check Firestore rules');return false}
 }
-$('bStop').onclick=()=>setStopped(true);
-$('bStart').onclick=()=>setStopped(false);
+const setMode=m=>write({mode:m,stopped:m==='stop'});
+$('bStop').onclick=()=>setMode('stop');
+$('bStart').onclick=()=>{$('blockBox').hidden=true;setMode('run')};
+$('bErr').onclick=()=>{$('blockBox').hidden=true;setMode('error')};
+$('bPend').onclick=()=>{$('blockBox').hidden=true;setMode('pend')};
+
+/* Block: pick the time below, then press "Block players" */
+function blockSecs(){
+  const m=Math.max(0,Math.floor(+$('bm').value||0)),s=Math.max(0,Math.floor(+$('bs').value||0));
+  return Math.min(86400,m*60+s);
+}
+function prev(){const t=blockSecs();$('bprev').textContent=t>0?'Players will be blocked for '+fmt(t):'';$('berr').textContent=''}
+$('bBlock').onclick=()=>{const b=$('blockBox');b.hidden=!b.hidden;if(!b.hidden){prev();$('bm').focus()}};
+$('bCancel').onclick=()=>{$('blockBox').hidden=true};
+$('bm').oninput=prev;$('bs').oninput=prev;
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const s=+c.dataset.s;$('bm').value=Math.floor(s/60);$('bs').value=s%60;prev()});
+$('bGo').onclick=async()=>{
+  const t=blockSecs();
+  if(t<=0){$('berr').textContent='Set a time greater than 0';return}
+  const ok=await write({mode:'block',stopped:false,blockSecs:t,blockUntil:Date.now()+t*1000});
+  if(ok)$('blockBox').hidden=true;
+};
+
+/* Difficulty */
+$('dMed').onclick=()=>write({difficulty:'medium'});
+$('dHard').onclick=()=>write({difficulty:'hard'});
+
 $('bClear').onclick=async()=>{
   if(!api)return;
   const old=players.filter(p=>Date.now()-(p.lastSeen||0)>3600000);
@@ -163,7 +269,11 @@ try{
   const app=initializeApp(firebaseConfig);
   const db=fs.initializeFirestore(app,{experimentalAutoDetectLongPolling:true});
   api={db,doc:fs.doc,setDoc:fs.setDoc,deleteDoc:fs.deleteDoc};
-  fs.onSnapshot(fs.doc(db,'control','game'),s=>{stopped=!!(s.data()||{}).stopped;setNet('ok','Connected to Firestore');render()},e=>{console.warn(e);setNet('err','Cannot read: check Firestore rules')});
+  fs.onSnapshot(fs.doc(db,'control','game'),s=>{
+    const d=s.data()||{};
+    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':'medium',blockUntil:+d.blockUntil||0,blockSecs:+d.blockSecs||0};
+    setNet('ok','Connected to Firestore');render();
+  },e=>{console.warn(e);setNet('err','Cannot read: check Firestore rules')});
   fs.onSnapshot(fs.collection(db,'players'),s=>{players=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},e=>console.warn(e));
 }catch(e){console.warn(e);setNet('err','Firebase failed to load')}
 </script>
