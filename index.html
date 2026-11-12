@@ -61,6 +61,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--warn);outline-o
 .seg button{border-radius:0;background:transparent;color:var(--ink);font-size:17px;padding:10px 22px}
 .seg button.on{background:var(--good);color:#06210f}
 .seg button.on.hardb{background:var(--bad);color:#fff}
+.seg button.on.easyb{background:#4ad7ff;color:#02202a}
 .hint{display:block;margin-top:8px;color:var(--mute);font-size:13px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .stat{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
@@ -125,8 +126,14 @@ td{padding:9px 10px;border-top:1px solid var(--line);font-variant-numeric:tabula
     <hr class="sep">
     <div>
       <p class="lbl">Difficulty</p>
-      <div class="seg" role="group" aria-label="Difficulty"><button id="dMed" type="button">Medium</button><button id="dHard" type="button" class="hardb">Hard</button></div>
+      <div class="seg" role="group" aria-label="Difficulty"><button id="dEasy" type="button" class="easyb">Easy</button><button id="dMed" type="button">Medium</button><button id="dHard" type="button" class="hardb">Hard</button></div>
       <small class="hint">Takes effect instantly. A player in the middle of a puzzle gets a fresh puzzle at the new level.</small>
+    </div>
+    <hr class="sep">
+    <div>
+      <p class="lbl">Game</p>
+      <div class="seg" role="group" aria-label="Game set"><button id="gA" type="button">Game A</button><button id="gB" type="button">Game B</button></div>
+      <small class="hint">Game A = the earlier games (random order). Game B = the new video games (serial order, 3 stages each). Switching restarts every player from Puzzle 1.</small>
     </div>
   </section>
 
@@ -177,7 +184,7 @@ $('gf').addEventListener('submit',e=>{
 function setNet(cls,t){const n=$('net');n.className='net '+cls;$('netT').textContent=t}
 let players=[],api=null,skew=0;
 function nowS(){return Date.now()+skew}
-let ctl={mode:'run',difficulty:'medium',blockUntil:0,blockSecs:0};
+let ctl={mode:'run',difficulty:'medium',gameSet:'A',blockUntil:0,blockSecs:0};
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function ago(ms){const s=Math.max(0,Math.round((nowS()-ms)/1000));return s<60?s+'s ago':s<3600?Math.floor(s/60)+'m ago':Math.floor(s/3600)+'h ago'}
@@ -196,8 +203,9 @@ function render(){
   $('bStop').disabled=em==='stop';$('bStart').disabled=em==='run';
   $('bErr').disabled=em==='error';$('bPend').disabled=em==='pend';
   $('bBlock').classList.toggle('cur',em==='block');
-  const hard=ctl.difficulty==='hard';
-  $('dMed').classList.toggle('on',!hard);$('dHard').classList.toggle('on',hard);
+  const dv=ctl.difficulty;
+  $('dEasy').classList.toggle('on',dv==='easy');$('dMed').classList.toggle('on',dv==='medium');$('dHard').classList.toggle('on',dv==='hard');
+  $('gA').classList.toggle('on',ctl.gameSet!=='B');$('gB').classList.toggle('on',ctl.gameSet==='B');
 
   const on=p=>nowS()-(p.lastSeen||0)<25000;
   const online=players.filter(on);
@@ -254,7 +262,10 @@ $('bGo').onclick=async()=>{
 };
 
 /* Difficulty */
+$('dEasy').onclick=()=>write({difficulty:'easy'});
 $('dMed').onclick=()=>write({difficulty:'medium'});
+$('gA').onclick=()=>write({gameSet:'A'});
+$('gB').onclick=()=>write({gameSet:'B'});
 $('dHard').onclick=()=>write({difficulty:'hard'});
 
 $('bClear').onclick=async()=>{
@@ -281,7 +292,7 @@ try{
     const d=s.data({serverTimestamps:'estimate'})||{};
     let bu=+d.blockUntil||0;
     if(d.blockStart&&typeof d.blockStart.toMillis==='function')bu=d.blockStart.toMillis()+(+d.blockSecs||0)*1000;
-    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':'medium',blockUntil:bu,blockSecs:+d.blockSecs||0};
+    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':d.difficulty==='easy'?'easy':'medium',gameSet:d.gameSet==='B'?'B':'A',blockUntil:bu,blockSecs:+d.blockSecs||0};
     setNet('ok','Connected to Firestore');render();
   },e=>{console.warn(e);setNet('err','Cannot read: check Firestore rules')});
   fs.onSnapshot(fs.collection(db,'players'),s=>{players=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},e=>console.warn(e));
