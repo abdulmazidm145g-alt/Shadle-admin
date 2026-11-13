@@ -98,6 +98,10 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
 .seg button.on.gcb{background:var(--blk);color:#fff}
 .tag.limit{color:var(--bad);border-color:var(--bad)}
 .tag.gamec{color:var(--blk);border-color:var(--blk)}
+.selnow{margin-top:10px;font-family:var(--f-display);font-weight:800;font-size:15px;color:var(--mute)}
+.selnow b{color:var(--good)}
+.seg button.on::before{content:"\2713\00a0"}
+.seg button.on{box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)}
 .mstate{font-size:14px;color:var(--mute);margin-top:10px;word-break:break-word}
 </style>
 </head>
@@ -145,6 +149,7 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
     <div>
       <p class="lbl">Game</p>
       <div class="seg" role="group" aria-label="Game set"><button id="gA" type="button">Game A</button><button id="gB" type="button">Game B</button><button id="gC" type="button" class="gcb">Game C</button></div>
+      <div class="selnow" id="gSel"></div>
       <small class="hint">Game A = the earlier games (random order). Game B = the new video games (serial order, 3 stages each). Game C = the game hub (Holly, Zuma, Bubble Trouble, KOF 97) with a countdown. Switching restarts every player.</small>
     </div>
   </section>
@@ -153,6 +158,7 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
     <div>
       <p class="lbl">Game C: colourful (playable) game</p>
       <div class="seg wrapseg" id="gcAct" role="group" aria-label="Game C active game"><button type="button" data-a="-1" class="gcb">All games</button><button type="button" data-a="0" class="gcb">1 Holly</button><button type="button" data-a="1" class="gcb">2 Zuma</button><button type="button" data-a="2" class="gcb">3 Bubble Trouble</button><button type="button" data-a="3" class="gcb">4 KOF 97</button></div>
+      <div class="selnow" id="gcSel"></div>
       <small class="hint">All games = every button is colourful and works. Pick one and the other buttons turn black and white; if a player taps them, they see an Error popup.</small>
     </div>
     <hr class="sep">
@@ -183,7 +189,7 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
       <p class="berr" id="mErr"></p>
       <div class="acts" style="margin-top:10px"><button id="mSend" class="blkb">Send message</button><button id="mClear" class="ghost" type="button">Clear message</button></div>
       <div class="mstate" id="mState"></div>
-      <small class="hint">The message stays on every player's screen until you press Start (or Clear message).</small>
+      <small class="hint">Info / Warning / Success show as a popup banner at the top. Error shows a big full-screen error with your message. It stays until you press Start (or Clear message).</small>
     </div>
   </section>
 
@@ -192,6 +198,8 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
     <div class="stat"><small>Playing</small><b id="sPlay">0</b></div>
     <div class="stat"><small>On verified screen</small><b id="sVer">0</b></div>
     <div class="stat"><small>Error / Block / Pend</small><b id="sPaused">0</b></div>
+    <div class="stat"><small>On Game C</small><b id="sGC">0</b></div>
+    <div class="stat"><small>Limit reached</small><b id="sLim">0</b></div>
     <div class="stat"><small>All visitors</small><b id="sAll">0</b></div>
   </section>
 
@@ -232,7 +240,7 @@ $('gf').addEventListener('submit',e=>{
 });
 
 function setNet(cls,t){const n=$('net');n.className='net '+cls;$('netT').textContent=t}
-let players=[],api=null,skew=0;
+let players=[],api=null,skew=0,lastGcSecs=-1;
 function nowS(){return Date.now()+skew}
 let ctl={mode:'run',difficulty:'medium',gameSet:'A',blockUntil:0,blockSecs:0,gcSecs:300,gcMsg:'',gcMsgType:'info',gcActive:-1};
 
@@ -257,6 +265,11 @@ function render(){
   $('dEasy').classList.toggle('on',dv==='easy');$('dMed').classList.toggle('on',dv==='medium');$('dHard').classList.toggle('on',dv==='hard');
   $('gA').classList.toggle('on',ctl.gameSet!=='B'&&ctl.gameSet!=='C');$('gB').classList.toggle('on',ctl.gameSet==='B');$('gC').classList.toggle('on',ctl.gameSet==='C');
   document.querySelectorAll('#gcAct button').forEach(b=>b.classList.toggle('on',+b.dataset.a===ctl.gcActive));
+  $('gSel').innerHTML='Selected now: <b>'+(ctl.gameSet==='C'?'Game C':ctl.gameSet==='B'?'Game B':'Game A')+'</b>';
+  $('gcSel').innerHTML='Selected now: <b>'+['1 Holly: A Christmas Tale','2 Zuma Deluxe','3 Bubble Trouble','4 Kings of Fighters 97'][ctl.gcActive]+'</b>'.replace('undefined','')+'';
+  if(!(ctl.gcActive>=0&&ctl.gcActive<=3))$('gcSel').innerHTML='Selected now: <b>All games</b>';
+  if(ctl.gcSecs!==lastGcSecs){lastGcSecs=ctl.gcSecs;$('gcm').value=Math.floor(ctl.gcSecs/60);$('gcs').value=ctl.gcSecs%60}
+  if(ctl.gcMsg&&ctl.gcMsgType==='error')$('gsub').textContent='Players see a full-screen error with your custom message';
   $('gcCur').textContent='Current countdown: '+fmt(ctl.gcSecs);
   $('mState').textContent=ctl.gcMsg?'Showing to players ('+ctl.gcMsgType+'): '+ctl.gcMsg:'No message is showing.';
 
@@ -265,8 +278,10 @@ function render(){
   $('sOn').textContent=online.length;
   $('sPlay').textContent=online.filter(p=>p.screen==='playing').length;
   $('sVer').textContent=online.filter(p=>p.screen==='verified').length;
-  $('sPaused').textContent=online.filter(p=>['error','blocked','pending','limit'].includes(p.screen)).length;
+  $('sPaused').textContent=online.filter(p=>['error','blocked','pending'].includes(p.screen)).length;
   $('sAll').textContent=players.length;
+  $('sGC').textContent=online.filter(p=>p.screen==='gamec').length;
+  $('sLim').textContent=online.filter(p=>p.screen==='limit').length;
   $('empty').hidden=players.length>0;
   const rows=players.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0));
   $('rows').innerHTML='';
@@ -288,8 +303,11 @@ setInterval(render,1000);render();
 
 async function write(obj){
   if(!api){setNet('err','Not connected');return false}
+  const prevCtl=Object.assign({},ctl);
+  for(const k of ['mode','gameSet','difficulty','gcSecs','gcMsg','gcMsgType','gcActive','blockSecs','blockUntil'])if(k in obj)ctl[k]=obj[k];
+  render();
   try{await api.setDoc(api.doc(api.db,'control','game'),Object.assign({updatedAt:nowS()},obj),{merge:true});return true}
-  catch(e){console.warn(e);setNet('err','Write failed: check Firestore rules');return false}
+  catch(e){console.warn(e);ctl=prevCtl;render();setNet('err','Write failed: check Firestore rules');return false}
 }
 const setMode=m=>write({mode:m,stopped:m==='stop'});
 $('bStop').onclick=()=>setMode('stop');
