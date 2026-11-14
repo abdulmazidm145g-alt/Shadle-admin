@@ -102,10 +102,18 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
 .selnow b{color:var(--good)}
 .seg button.on::before{content:"\2713\00a0"}
 .seg button.on{box-shadow:inset 0 0 0 2px rgba(255,255,255,.6)}
+#toasts{position:fixed;left:0;right:0;top:max(12px,env(safe-area-inset-top,0px));z-index:50;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;padding:0 12px}
+.toast{display:flex;align-items:center;gap:10px;max-width:420px;width:100%;padding:12px 16px;border-radius:14px;color:#fff;font-weight:800;font-size:15px;line-height:1.3;border:1px solid rgba(255,255,255,.35);box-shadow:0 12px 30px rgba(0,0,0,.55);animation:tin .3s cubic-bezier(.2,1.3,.4,1) both}
+.toast i{font-style:normal;flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.25);font-family:var(--f-display)}
+.toast.ok{background:#12794a}.toast.bad{background:#b3162a}.toast.out{animation:tout .3s ease-in forwards}
+@keyframes tin{from{opacity:0;transform:translateY(-24px) scale(.95)}to{opacity:1;transform:none}}
+@keyframes tout{to{opacity:0;transform:translateY(-16px)}}
+.tag.message{color:var(--warn);border-color:var(--warn)}
 .mstate{font-size:14px;color:var(--mute);margin-top:10px;word-break:break-word}
 </style>
 </head>
 <body>
+<div id="toasts" aria-live="polite"></div>
 <div id="gate"><form id="gf"><img class="logo" id="gl" alt="PK Server logo" style="margin:0 auto"><h1>Admin sign-in</h1><input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" aria-label="Admin PIN"><p id="gerr"></p><button type="submit">Open panel</button></form></div>
 
 <main id="panel" hidden>
@@ -150,36 +158,18 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
       <p class="lbl">Game</p>
       <div class="seg" role="group" aria-label="Game set"><button id="gA" type="button">Game A</button><button id="gB" type="button">Game B</button><button id="gC" type="button" class="gcb">Game C</button></div>
       <div class="selnow" id="gSel"></div>
-      <small class="hint">Game A = the earlier games (random order). Game B = the new video games (serial order, 3 stages each). Game C = the game hub (Holly, Zuma, Bubble Trouble, KOF 97) with a countdown. Switching restarts every player.</small>
+      <small class="hint">Game A = the earlier games (random order). Game B = the new video games (serial order, 3 stages each). Game C = the game hub (Holly, Zuma, Bubble Trouble, KOF 97, Zuma's Revenge). Switching restarts every player.</small>
     </div>
   </section>
 
   <section class="panel ctrl" aria-label="Game C and messages">
     <div>
       <p class="lbl">Game C: colourful (playable) game</p>
-      <div class="seg wrapseg" id="gcAct" role="group" aria-label="Game C active game"><button type="button" data-a="-1" class="gcb">All games</button><button type="button" data-a="0" class="gcb">1 Holly</button><button type="button" data-a="1" class="gcb">2 Zuma</button><button type="button" data-a="2" class="gcb">3 Bubble Trouble</button><button type="button" data-a="3" class="gcb">4 KOF 97</button></div>
+      <div class="seg wrapseg" id="gcAct" role="group" aria-label="Game C active game"><button type="button" data-a="-1" class="gcb">All games</button><button type="button" data-a="0" class="gcb">1 Holly</button><button type="button" data-a="1" class="gcb">2 Zuma</button><button type="button" data-a="2" class="gcb">3 Bubble Trouble</button><button type="button" data-a="3" class="gcb">4 KOF 97</button><button type="button" data-a="4" class="gcb">5 Zuma's Revenge</button></div>
       <div class="selnow" id="gcSel"></div>
       <small class="hint">All games = every button is colourful and works. Pick one and the other buttons turn black and white; if a player taps them, they see an Error popup.</small>
-    </div>
-    <hr class="sep">
-    <div>
-      <p class="lbl">Game C countdown</p>
-      <div class="chips" id="gcChips">
-        <button type="button" class="chip" data-s="60">1 min</button>
-        <button type="button" class="chip" data-s="120">2 min</button>
-        <button type="button" class="chip" data-s="300">5 min</button>
-        <button type="button" class="chip" data-s="600">10 min</button>
-        <button type="button" class="chip" data-s="900">15 min</button>
-        <button type="button" class="chip" data-s="1800">30 min</button>
-      </div>
-      <div class="tin" style="margin-top:10px">
-        <label>Minutes<input id="gcm" type="number" min="0" max="1440" value="5" inputmode="numeric"></label>
-        <label>Seconds<input id="gcs" type="number" min="0" max="59" value="0" inputmode="numeric"></label>
-      </div>
-      <div class="bprev" id="gcCur"></div>
-      <p class="berr" id="gcErr"></p>
-      <div class="acts"><button id="gcSave" class="pndb">Save time</button><button id="gcReset" class="errb">Reset all players</button></div>
-      <small class="hint">The countdown starts on a player's device when they press Play Now. Reset clears every player's countdown and brings them back to the Game C list.</small>
+      <div class="acts" style="margin-top:10px"><button id="gcReset" class="errb">Reset all players</button></div>
+      <small class="hint">Reset sends every player back to the Game C list (clears the game they opened).</small>
     </div>
     <hr class="sep">
     <div>
@@ -189,7 +179,7 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
       <p class="berr" id="mErr"></p>
       <div class="acts" style="margin-top:10px"><button id="mSend" class="blkb">Send message</button><button id="mClear" class="ghost" type="button">Clear message</button></div>
       <div class="mstate" id="mState"></div>
-      <small class="hint">Info / Warning / Success show as a popup banner at the top. Error shows a big full-screen error with your message. It stays until you press Start (or Clear message).</small>
+      <small class="hint">The message replaces the whole game screen for every player, with an animation (Info = blue, Warning = amber, Success = green, Error = red). Only that screen is shown. It stays until you press Start (or Clear message).</small>
     </div>
   </section>
 
@@ -199,7 +189,6 @@ textarea:focus-visible{outline:3px solid var(--warn);outline-offset:2px}
     <div class="stat"><small>On verified screen</small><b id="sVer">0</b></div>
     <div class="stat"><small>Error / Block / Pend</small><b id="sPaused">0</b></div>
     <div class="stat"><small>On Game C</small><b id="sGC">0</b></div>
-    <div class="stat"><small>Limit reached</small><b id="sLim">0</b></div>
     <div class="stat"><small>All visitors</small><b id="sAll">0</b></div>
   </section>
 
@@ -229,6 +218,14 @@ const firebaseConfig={
 };
 
 const $=id=>document.getElementById(id);
+function toast(ok,text){
+  const box=$('toasts'),t=document.createElement('div');
+  t.className='toast '+(ok?'ok':'bad');
+  t.innerHTML='<i>'+(ok?'\u2713':'!')+'</i><span></span>';t.querySelector('span').textContent=text;
+  while(box.children.length>=3)box.firstChild.remove();
+  box.appendChild(t);
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},ok?2600:4200);
+}
 let authed=false;
 try{authed=sessionStorage.getItem('pk-admin')==='1'}catch(e){}
 function open(){$('gate').hidden=true;$('panel').hidden=false}
@@ -240,9 +237,9 @@ $('gf').addEventListener('submit',e=>{
 });
 
 function setNet(cls,t){const n=$('net');n.className='net '+cls;$('netT').textContent=t}
-let players=[],api=null,skew=0,lastGcSecs=-1;
+let players=[],api=null,skew=0;
 function nowS(){return Date.now()+skew}
-let ctl={mode:'run',difficulty:'medium',gameSet:'A',blockUntil:0,blockSecs:0,gcSecs:300,gcMsg:'',gcMsgType:'info',gcActive:-1};
+let ctl={mode:'run',difficulty:'medium',gameSet:'A',blockUntil:0,blockSecs:0,gcMsg:'',gcMsgType:'info',gcActive:-1};
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function ago(ms){const s=Math.max(0,Math.round((nowS()-ms)/1000));return s<60?s+'s ago':s<3600?Math.floor(s/60)+'m ago':Math.floor(s/3600)+'h ago'}
@@ -266,11 +263,9 @@ function render(){
   $('gA').classList.toggle('on',ctl.gameSet!=='B'&&ctl.gameSet!=='C');$('gB').classList.toggle('on',ctl.gameSet==='B');$('gC').classList.toggle('on',ctl.gameSet==='C');
   document.querySelectorAll('#gcAct button').forEach(b=>b.classList.toggle('on',+b.dataset.a===ctl.gcActive));
   $('gSel').innerHTML='Selected now: <b>'+(ctl.gameSet==='C'?'Game C':ctl.gameSet==='B'?'Game B':'Game A')+'</b>';
-  $('gcSel').innerHTML='Selected now: <b>'+['1 Holly: A Christmas Tale','2 Zuma Deluxe','3 Bubble Trouble','4 Kings of Fighters 97'][ctl.gcActive]+'</b>'.replace('undefined','')+'';
-  if(!(ctl.gcActive>=0&&ctl.gcActive<=3))$('gcSel').innerHTML='Selected now: <b>All games</b>';
-  if(ctl.gcSecs!==lastGcSecs){lastGcSecs=ctl.gcSecs;$('gcm').value=Math.floor(ctl.gcSecs/60);$('gcs').value=ctl.gcSecs%60}
+  $('gcSel').innerHTML='Selected now: <b>'+['1 Holly: A Christmas Tale','2 Zuma Deluxe','3 Bubble Trouble','4 Kings of Fighters 97',"5 Zuma's Revenge"][ctl.gcActive]+'</b>'.replace('undefined','')+'';
+  if(!(ctl.gcActive>=0&&ctl.gcActive<=4))$('gcSel').innerHTML='Selected now: <b>All games</b>';
   if(ctl.gcMsg&&ctl.gcMsgType==='error')$('gsub').textContent='Players see a full-screen error with your custom message';
-  $('gcCur').textContent='Current countdown: '+fmt(ctl.gcSecs);
   $('mState').textContent=ctl.gcMsg?'Showing to players ('+ctl.gcMsgType+'): '+ctl.gcMsg:'No message is showing.';
 
   const on=p=>nowS()-(p.lastSeen||0)<25000;
@@ -281,17 +276,16 @@ function render(){
   $('sPaused').textContent=online.filter(p=>['error','blocked','pending'].includes(p.screen)).length;
   $('sAll').textContent=players.length;
   $('sGC').textContent=online.filter(p=>p.screen==='gamec').length;
-  $('sLim').textContent=online.filter(p=>p.screen==='limit').length;
   $('empty').hidden=players.length>0;
   const rows=players.slice().sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0));
   $('rows').innerHTML='';
   for(const p of rows){
     const tr=document.createElement('tr');
-    const sc=['verified','error','blocked','pending','limit','gamec'].includes(p.screen)?p.screen:'';
+    const sc=['verified','error','blocked','pending','message','gamec'].includes(p.screen)?p.screen:'';
     const cells=[
       ['<span class="dot '+(on(p)?'on':'')+'"></span>'+esc(p.id),true],
       ['<span class="tag '+sc+'">'+esc(p.screen||'-')+'</span>',true],
-      [(p.screen==='gamec'||p.screen==='limit')?(p.gcGame||'Game C list'):(p.puzzleNo?p.puzzleNo+' / '+(p.total||30)+' ('+(p.puzzle||'')+')':'-')],
+      [(p.screen==='gamec')?(p.gcGame||'Game C list'):(p.puzzleNo?p.puzzleNo+' / '+(p.total||30)+' ('+(p.puzzle||'')+')':'-')],
       [p.level?'<span class="tag '+(p.level==='hard'?'hard':'')+'">'+esc(p.level)+'</span>':'-',true],
       [p.round||'-'],[p.lives!=null?p.lives:'-'],[p.mobile?'Phone':'Desktop'],[p.lastSeen?ago(p.lastSeen):'-']
     ];
@@ -301,17 +295,18 @@ function render(){
 }
 setInterval(render,1000);render();
 
-async function write(obj){
-  if(!api){setNet('err','Not connected');return false}
+async function write(obj,okMsg){
+  if(!api){setNet('err','Not connected');toast(false,'Not connected to the server. Nothing was changed.');return false}
   const prevCtl=Object.assign({},ctl);
-  for(const k of ['mode','gameSet','difficulty','gcSecs','gcMsg','gcMsgType','gcActive','blockSecs','blockUntil'])if(k in obj)ctl[k]=obj[k];
+  for(const k of ['mode','gameSet','difficulty','gcMsg','gcMsgType','gcActive','blockSecs','blockUntil'])if(k in obj)ctl[k]=obj[k];
   render();
-  try{await api.setDoc(api.doc(api.db,'control','game'),Object.assign({updatedAt:nowS()},obj),{merge:true});return true}
-  catch(e){console.warn(e);ctl=prevCtl;render();setNet('err','Write failed: check Firestore rules');return false}
+  try{await api.setDoc(api.doc(api.db,'control','game'),Object.assign({updatedAt:nowS()},obj),{merge:true});if(okMsg)toast(true,okMsg);return true}
+  catch(e){console.warn(e);ctl=prevCtl;render();setNet('err','Write failed: check Firestore rules');toast(false,'Failed: '+(okMsg||'change')+' did not reach the game. Check Firestore rules / internet.');return false}
 }
-const setMode=m=>write({mode:m,stopped:m==='stop'});
+const MSG={stop:'Game stopped: players now see the verified screen',error:'Error screen is now showing in the game',pend:'Pending screen is now showing in the game'};
+const setMode=m=>write({mode:m,stopped:m==='stop'},MSG[m]);
 $('bStop').onclick=()=>setMode('stop');
-$('bStart').onclick=()=>{$('blockBox').hidden=true;write({mode:'run',stopped:false,gcMsg:''})};
+$('bStart').onclick=()=>{$('blockBox').hidden=true;write({mode:'run',stopped:false,gcMsg:''},'Game started: players are back in the game')};
 $('bErr').onclick=()=>{$('blockBox').hidden=true;setMode('error')};
 $('bPend').onclick=()=>{$('blockBox').hidden=true;setMode('pend')};
 
@@ -327,29 +322,25 @@ $('bm').oninput=prev;$('bs').oninput=prev;
 document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{const s=+c.dataset.s;$('bm').value=Math.floor(s/60);$('bs').value=s%60;prev()});
 $('bGo').onclick=async()=>{
   const t=blockSecs();
-  if(t<=0){$('berr').textContent='Set a time greater than 0';return}
-  const ok=await write({mode:'block',stopped:false,blockSecs:t,blockUntil:nowS()+t*1000,blockStart:api.serverTimestamp()});
+  if(t<=0){$('berr').textContent='Set a time greater than 0';toast(false,'Set a block time greater than 0');return}
+  const ok=await write({mode:'block',stopped:false,blockSecs:t,blockUntil:nowS()+t*1000,blockStart:api.serverTimestamp()},'Players blocked for '+fmt(t));
   if(ok)$('blockBox').hidden=true;
 };
 
 /* Difficulty */
-$('dEasy').onclick=()=>write({difficulty:'easy'});
-$('dMed').onclick=()=>write({difficulty:'medium'});
-$('gA').onclick=()=>write({gameSet:'A'});
-$('gB').onclick=()=>write({gameSet:'B'});
-$('gC').onclick=()=>write({gameSet:'C'});
-document.querySelectorAll('#gcAct button').forEach(b=>b.onclick=()=>write({gcActive:+b.dataset.a}));
-/* Game C countdown */
-function gcVal(){const m=Math.max(0,Math.floor(+$('gcm').value||0)),s=Math.max(0,Math.floor(+$('gcs').value||0));return Math.min(86400,m*60+s)}
-document.querySelectorAll('#gcChips .chip').forEach(c=>c.onclick=()=>{const s=+c.dataset.s;$('gcm').value=Math.floor(s/60);$('gcs').value=s%60;$('gcErr').textContent=''});
-$('gcSave').onclick=async()=>{const t=gcVal();if(t<5){$('gcErr').textContent='Minimum is 5 seconds';return}$('gcErr').textContent='';await write({gcSecs:t})};
-$('gcReset').onclick=()=>{if(confirm('Reset every player\'s countdown and send them back to the Game C list?'))write({gcReset:nowS(),gameSet:'C'})};
+$('dEasy').onclick=()=>write({difficulty:'easy'},'Difficulty set to Easy');
+$('dMed').onclick=()=>write({difficulty:'medium'},'Difficulty set to Medium');
+$('gA').onclick=()=>write({gameSet:'A'},'Game A is now live for all players');
+$('gB').onclick=()=>write({gameSet:'B'},'Game B is now live for all players');
+$('gC').onclick=()=>write({gameSet:'C'},'Game C is now live for all players');
+document.querySelectorAll('#gcAct button').forEach(b=>b.onclick=()=>write({gcActive:+b.dataset.a},+b.dataset.a<0?'Game C: all games are unlocked':'Game C: only '+b.textContent.replace(/^\d\s/,'')+' is playable now'));
+$('gcReset').onclick=()=>{if(confirm('Send every player back to the Game C list?'))write({gcReset:nowS(),gameSet:'C'},'All players reset to the Game C list')};
 /* Message to players */
 let mt='info';
 document.querySelectorAll('#mType button').forEach(b=>b.onclick=()=>{mt=b.dataset.t;document.querySelectorAll('#mType button').forEach(x=>x.classList.toggle('on',x===b))});
-$('mSend').onclick=async()=>{const t=$('mTxt').value.trim();if(!t){$('mErr').textContent='Write a message first';return}$('mErr').textContent='';await write({gcMsg:t,gcMsgType:mt})};
-$('mClear').onclick=()=>write({gcMsg:''});
-$('dHard').onclick=()=>write({difficulty:'hard'});
+$('mSend').onclick=async()=>{const t=$('mTxt').value.trim();if(!t){$('mErr').textContent='Write a message first';toast(false,'Write a message first');return}$('mErr').textContent='';await write({gcMsg:t,gcMsgType:mt},'Message sent: players now see the '+mt+' screen')};
+$('mClear').onclick=()=>write({gcMsg:''},'Message cleared: players are back in the game');
+$('dHard').onclick=()=>write({difficulty:'hard'},'Difficulty set to Hard');
 
 $('bClear').onclick=async()=>{
   if(!api)return;
@@ -375,7 +366,7 @@ try{
     const d=s.data({serverTimestamps:'estimate'})||{};
     let bu=+d.blockUntil||0;
     if(d.blockStart&&typeof d.blockStart.toMillis==='function')bu=d.blockStart.toMillis()+(+d.blockSecs||0)*1000;
-    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':d.difficulty==='easy'?'easy':'medium',gameSet:d.gameSet==='B'?'B':'A',blockUntil:bu,blockSecs:+d.blockSecs||0,gcSecs:+d.gcSecs||300,gcMsg:String(d.gcMsg||''),gcMsgType:d.gcMsgType||'info',gcActive:(d.gcActive===undefined||d.gcActive===null||d.gcActive==='')?-1:+d.gcActive};
+    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':d.difficulty==='easy'?'easy':'medium',gameSet:d.gameSet==='B'?'B':d.gameSet==='C'?'C':'A',blockUntil:bu,blockSecs:+d.blockSecs||0,gcMsg:String(d.gcMsg||''),gcMsgType:d.gcMsgType||'info',gcActive:(d.gcActive===undefined||d.gcActive===null||d.gcActive==='')?-1:+d.gcActive};
     setNet('ok','Connected to Firestore');render();
   },e=>{console.warn(e);setNet('err','Cannot read: check Firestore rules')});
   fs.onSnapshot(fs.collection(db,'players'),s=>{players=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},e=>console.warn(e));
