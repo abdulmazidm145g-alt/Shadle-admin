@@ -216,6 +216,10 @@ button.cur{box-shadow:0 0 0 2px #fff,0 0 30px rgba(255,255,255,.4)}
       <small class="hint">All games = every button is colourful and works. Pick one and the other buttons turn black and white; if a player taps them, they see an Error popup.</small>
       <div class="acts" style="margin-top:10px"><button id="gcReset" class="errb">Reset all players</button></div>
       <small class="hint">Reset sends every player back to the Game C list (clears the game they opened).</small>
+      <p class="lbl" style="margin-top:16px">Game C top video (link)</p>
+      <input id="hvIn" type="url" inputmode="url" placeholder="https://.../video.mp4" autocomplete="off" style="width:100%;padding:12px 14px;margin-top:6px">
+      <div class="acts" style="margin-top:10px"><button id="hvSave">Save video</button><button id="hvClear" class="errb">Use default animation</button></div>
+      <small class="hint" id="hvHint">Paste a direct .mp4 / .webm link. The video plays muted and looping at the top of Game C for every player. Empty = the built-in globe animation.</small>
     </div>
     <hr class="sep">
     <div>
@@ -286,7 +290,7 @@ function setNet(cls,t){const n=$('net');n.className='net '+cls;$('netT').textCon
 let players=[],api=null,skew=0;
 function nowS(){return Date.now()+skew}
 const GCN=['Holly: A Christmas Tale','Zuma Deluxe','Bubble Trouble','Kings of Fighters 97',"Zuma's Revenge",'Mostofa Arcade'];
-let ctl={mode:'run',difficulty:'medium',gameSet:'A',blockUntil:0,blockSecs:0,gcMsg:'',gcMsgType:'info',gcSel:[]};
+let ctl={mode:'run',difficulty:'medium',gameSet:'A',blockUntil:0,blockSecs:0,gcMsg:'',gcMsgType:'info',gcSel:[],heroVideo:''};
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function ago(ms){const s=Math.max(0,Math.round((nowS()-ms)/1000));return s<60?s+'s ago':s<3600?Math.floor(s/60)+'m ago':Math.floor(s/3600)+'h ago'}
@@ -296,6 +300,7 @@ function effMode(){return ctl.mode==='block'&&(ctl.blockUntil||0)<=nowS()?'run':
 
 const LABELS={run:['Running','run'],stop:['Stopped','stop'],error:['Error screen','error'],block:['Blocked','block'],pend:['Pending','pend']};
 function render(){
+  if($('hvIn')&&document.activeElement!==$('hvIn'))$('hvIn').value=ctl.heroVideo||'';
   const em=effMode(),L=LABELS[em]||LABELS.run;
   $('gs').textContent=L[0];$('gs').className=L[1];
   $('gsub').textContent=em==='block'?fmt((ctl.blockUntil-nowS())/1000)+' left (players resume automatically)':
@@ -343,7 +348,7 @@ setInterval(render,1000);render();
 async function write(obj,okMsg){
   if(!api){setNet('err','Not connected');toast(false,'Not connected to the server. Nothing was changed.');return false}
   const prevCtl=Object.assign({},ctl);
-  for(const k of ['mode','gameSet','difficulty','gcMsg','gcMsgType','gcSel','blockSecs','blockUntil'])if(k in obj)ctl[k]=obj[k];
+  for(const k of ['mode','gameSet','difficulty','gcMsg','gcMsgType','gcSel','heroVideo','blockSecs','blockUntil'])if(k in obj)ctl[k]=obj[k];
   render();
   try{await api.setDoc(api.doc(api.db,'control','game'),Object.assign({updatedAt:nowS()},obj),{merge:true});if(okMsg)toast(true,okMsg);return true}
   catch(e){console.warn(e);ctl=prevCtl;render();setNet('err','Write failed: check Firestore rules');toast(false,'Failed: '+(okMsg||'change')+' did not reach the game. Check Firestore rules / internet.');return false}
@@ -383,6 +388,11 @@ document.querySelectorAll('#gcAct button').forEach(b=>b.onclick=()=>{
   if(n<0)s=[];else if(s.includes(n))s=s.filter(x=>x!==n);else s.push(n);
   s.sort((x,y)=>x-y);
   write({gcSel:s,gcActive:-1},s.length?'Game C: '+s.map(x=>GCN[x]).join(', ')+(s.length>1?' are':' is')+' playable now':'Game C: all games are unlocked')});
+$('hvSave').onclick=()=>{const u=$('hvIn').value.trim();
+  if(!/^https?:\/\/\S+$/i.test(u)){toast(false,'Paste a full link starting with https://');return}
+  if(!/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(u)&&!confirm('This link does not end with .mp4 / .webm. It must be a direct video file link. Save anyway?'))return;
+  write({heroVideo:u},'Top video saved: players will see it in Game C')};
+$('hvClear').onclick=()=>{$('hvIn').value='';write({heroVideo:''},'Top video removed: the built-in animation is back')};
 $('gcReset').onclick=()=>{if(confirm('Send every player back to the Game C list?'))write({gcReset:nowS(),gameSet:'C'},'All players reset to the Game C list')};
 /* Message to players */
 let mt='info';
@@ -415,7 +425,7 @@ try{
     const d=s.data({serverTimestamps:'estimate'})||{};
     let bu=+d.blockUntil||0;
     if(d.blockStart&&typeof d.blockStart.toMillis==='function')bu=d.blockStart.toMillis()+(+d.blockSecs||0)*1000;
-    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':d.difficulty==='easy'?'easy':'medium',gameSet:d.gameSet==='B'?'B':d.gameSet==='C'?'C':'A',blockUntil:bu,blockSecs:+d.blockSecs||0,gcMsg:String(d.gcMsg||''),gcMsgType:d.gcMsgType||'info',gcSel:Array.isArray(d.gcSel)?d.gcSel.map(Number).filter(n=>n>=0&&n<GCN.length):((d.gcActive!==undefined&&d.gcActive!==null&&d.gcActive!==''&&+d.gcActive>=0)?[+d.gcActive]:[])};
+    ctl={mode:d.mode||(d.stopped?'stop':'run'),difficulty:d.difficulty==='hard'?'hard':d.difficulty==='easy'?'easy':'medium',gameSet:d.gameSet==='B'?'B':d.gameSet==='C'?'C':'A',blockUntil:bu,blockSecs:+d.blockSecs||0,gcMsg:String(d.gcMsg||''),gcMsgType:d.gcMsgType||'info',heroVideo:String(d.heroVideo||''),gcSel:Array.isArray(d.gcSel)?d.gcSel.map(Number).filter(n=>n>=0&&n<GCN.length):((d.gcActive!==undefined&&d.gcActive!==null&&d.gcActive!==''&&+d.gcActive>=0)?[+d.gcActive]:[])};
     setNet('ok','Connected to Firestore');render();
   },e=>{console.warn(e);setNet('err','Cannot read: check Firestore rules')});
   fs.onSnapshot(fs.collection(db,'players'),s=>{players=s.docs.map(d=>Object.assign({id:d.id},d.data()));render()},e=>console.warn(e));
