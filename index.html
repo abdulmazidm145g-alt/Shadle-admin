@@ -388,7 +388,10 @@ document.querySelectorAll('#gcAct button').forEach(b=>b.onclick=()=>{
   if(n<0)s=[];else if(s.includes(n))s=s.filter(x=>x!==n);else s.push(n);
   s.sort((x,y)=>x-y);
   write({gcSel:s,gcActive:-1},s.length?'Game C: '+s.map(x=>GCN[x]).join(', ')+(s.length>1?' are':' is')+' playable now':'Game C: all games are unlocked')});
-$('hvSave').onclick=()=>{const u=$('hvIn').value.trim();
+function pkVid(u){u=String(u||'').trim();var m=u.match(/^https?:\/\/player\.cloudinary\.com\/embed\/?\?(.*)$/i);if(!m)return u;
+  var q={};m[1].split('&').forEach(function(p){var k=p.split('=');q[k[0]]=decodeURIComponent((k[1]||'').replace(/\+/g,' '))});
+  if(!q.cloud_name||!q.public_id)return u;return 'https://res.cloudinary.com/'+q.cloud_name+'/video/upload/f_mp4/'+q.public_id.split('/').map(encodeURIComponent).join('/')+'.mp4'}
+$('hvSave').onclick=()=>{const u=pkVid($('hvIn').value);$('hvIn').value=u;
   if(!/^https?:\/\/\S+$/i.test(u)){toast(false,'Paste a full link starting with https://');return}
   if(!/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(u)&&!confirm('This link does not end with .mp4 / .webm. It must be a direct video file link. Save anyway?'))return;
   write({heroVideo:u},'Top video saved: players will see it in Game C')};
